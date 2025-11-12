@@ -59,7 +59,7 @@ func (r *ForeignClusterReconciler) handleRemoteVersion(ctx context.Context, fc *
 	// Method 2: Fallback - try to read version from local Tenant resource
 	// This works when we are the provider and don't have credentials to access the consumer
 	if remoteVersion == "" {
-		remoteVersion = r.getVersionFromTenant(ctx, clusterID)
+		remoteVersion = r.getVersionFromTenant(ctx, fc, clusterID)
 		if remoteVersion != "" {
 			klog.V(4).Infof("Fetched remote version from Tenant for ForeignCluster %q: %s", clusterID, remoteVersion)
 		}
@@ -75,11 +75,18 @@ func (r *ForeignClusterReconciler) handleRemoteVersion(ctx context.Context, fc *
 
 // getVersionFromTenant attempts to read the Liqo version from the local Tenant resource
 // created by the remote cluster. Returns empty string if Tenant is not found or has no version.
-func (r *ForeignClusterReconciler) getVersionFromTenant(ctx context.Context, clusterID liqov1beta1.ClusterID) string {
-	// Try to find the Tenant resource for this cluster ID in the Liqo namespace
-	tenant, err := getters.GetTenantByClusterID(ctx, r.Client, clusterID, r.LiqoNamespace)
+func (r *ForeignClusterReconciler) getVersionFromTenant(ctx context.Context, fc *liqov1beta1.ForeignCluster, clusterID liqov1beta1.ClusterID) string {
+	// Get the tenant namespace from the ForeignCluster status
+	tenantNamespace := fc.Status.TenantNamespace.Local
+	if tenantNamespace == "" {
+		klog.V(6).Infof("No tenant namespace found for ForeignCluster %q", clusterID)
+		return ""
+	}
+
+	// Try to find the Tenant resource for this cluster ID in the tenant namespace
+	tenant, err := getters.GetTenantByClusterID(ctx, r.Client, clusterID, tenantNamespace)
 	if err != nil {
-		klog.V(6).Infof("Unable to get Tenant for cluster %q: %v", clusterID, err)
+		klog.V(6).Infof("Unable to get Tenant for cluster %q in namespace %q: %v", clusterID, tenantNamespace, err)
 		return ""
 	}
 
