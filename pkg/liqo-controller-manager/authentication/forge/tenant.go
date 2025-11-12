@@ -25,9 +25,9 @@ import (
 
 // TenantForRemoteCluster forges a Tenant resource to be applied on a remote cluster.
 func TenantForRemoteCluster(localClusterID liqov1beta1.ClusterID,
-	publicKey, csr, signature []byte, namespace, proxyURL *string) *authv1beta1.Tenant {
+	publicKey, csr, signature []byte, namespace, proxyURL *string, liqoVersion string) *authv1beta1.Tenant {
 	tenant := Tenant(localClusterID, namespace)
-	MutateTenant(tenant, localClusterID, publicKey, csr, signature, proxyURL)
+	MutateTenant(tenant, localClusterID, publicKey, csr, signature, proxyURL, liqoVersion)
 
 	return tenant
 }
@@ -48,7 +48,7 @@ func Tenant(remoteClusterID liqov1beta1.ClusterID, namespace *string) *authv1bet
 
 // MutateTenant mutates a Tenant resource.
 func MutateTenant(tenant *authv1beta1.Tenant, remoteClusterID liqov1beta1.ClusterID,
-	publicKey, csr, signature []byte, proxyURL *string) {
+	publicKey, csr, signature []byte, proxyURL *string, liqoVersion string) {
 	if tenant.Labels == nil {
 		tenant.Labels = map[string]string{}
 	}
@@ -60,10 +60,11 @@ func MutateTenant(tenant *authv1beta1.Tenant, remoteClusterID liqov1beta1.Cluste
 	}
 
 	tenant.Spec = authv1beta1.TenantSpec{
-		ClusterID: remoteClusterID,
-		PublicKey: publicKey,
-		CSR:       csr,
-		Signature: signature,
-		ProxyURL:  proxyURLPtr,
+		ClusterID:   remoteClusterID,
+		PublicKey:   publicKey,
+		CSR:         csr,
+		Signature:   signature,
+		ProxyURL:    proxyURLPtr,
+		LiqoVersion: liqoVersion,
 	}
 }

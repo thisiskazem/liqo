@@ -71,6 +71,10 @@ spec:
                   cluster.
                 format: byte
                 type: string
+              liqoVersion:
+                description: LiqoVersion is the Liqo version running on the tenant
+                  (consumer) cluster.
+                type: string
               proxyURL:
                 description: ProxyURL is the URL of the proxy used by the tenant cluster
                   to connect to the local cluster (optional).

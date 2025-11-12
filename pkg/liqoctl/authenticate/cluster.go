@@ -18,8 +18,10 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	authv1beta1 "github.com/liqotech/liqo/apis/authentication/v1beta1"
 	liqov1beta1 "github.com/liqotech/liqo/apis/core/v1beta1"
@@ -155,6 +157,10 @@ func (c *Cluster) EnsureSignedNonce(ctx context.Context, nonce []byte) ([]byte, 
 func (c *Cluster) GenerateTenant(
 	ctx context.Context, signedNonce []byte, remoteTenantNamespace string, proxyURL *string) (*authv1beta1.Tenant, error) {
 	s := c.local.Printer.StartSpinner("Generating tenant")
+
+	// Get the local Liqo version from the liqo-version ConfigMap
+	liqoVersion := c.getLocalLiqoVersion(ctx)
+
 	tenant, err := authutils.GenerateTenant(
 		ctx, c.local.CRClient,
 		c.LocalClusterID,
@@ -162,6 +168,7 @@ func (c *Cluster) GenerateTenant(
 		remoteTenantNamespace,
 		signedNonce,
 		proxyURL,
+		liqoVersion,
 	)
 	if err != nil {
 		s.Fail(fmt.Sprintf("Unable to generate tenant: %v", output.PrettyErr(err)))
@@ -263,4 +270,25 @@ func (c *Cluster) RemapIPExternalCIDR(ctx context.Context, ip string) (string, e
 	}
 
 	return remappedIP, nil
+}
+
+// getLocalLiqoVersion retrieves the Liqo version from the local cluster's liqo-version ConfigMap.
+// If the ConfigMap is not found or the version cannot be retrieved, it returns an empty string.
+func (c *Cluster) getLocalLiqoVersion(ctx context.Context) string {
+	cm := &corev1.ConfigMap{}
+	err := c.local.CRClient.Get(ctx, client.ObjectKey{
+		Namespace: c.local.LiqoNamespace,
+		Name:      "liqo-version",
+	}, cm)
+	if err != nil {
+		// If the ConfigMap doesn't exist, return empty string (version info not available)
+		return ""
+	}
+
+	version, ok := cm.Data["version"]
+	if !ok {
+		return ""
+	}
+
+	return version
 }

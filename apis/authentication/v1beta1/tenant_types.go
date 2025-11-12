@@ -72,6 +72,9 @@ type TenantSpec struct {
 	Signature []byte `json:"signature,omitempty"`
 	// ProxyURL is the URL of the proxy used by the tenant cluster to connect to the local cluster (optional).
 	ProxyURL *string `json:"proxyURL,omitempty"`
+	// LiqoVersion is the Liqo version running on the tenant (consumer) cluster.
+	// +kubebuilder:validation:Optional
+	LiqoVersion string `json:"liqoVersion,omitempty"`
 	// TenantCondition contains the conditions of the tenant.
 	// +kubebuilder:validation:Enum=Active;Cordoned;Drained
 	// +kubebuilder:default=Active

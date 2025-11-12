@@ -19,7 +19,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	authutils "github.com/liqotech/liqo/pkg/liqo-controller-manager/authentication/utils"
 	"github.com/liqotech/liqo/pkg/liqoctl/completion"
@@ -121,7 +123,10 @@ func (o *Options) handleGenerate(ctx context.Context) error {
 		return err
 	}
 
-	tenant, err := authutils.GenerateTenant(ctx, opts.CRClient, localClusterID, opts.LiqoNamespace, o.remoteTenantNs, signedNonce, &o.proxyURL)
+	// Get the local Liqo version from the liqo-version ConfigMap
+	liqoVersion := getLocalLiqoVersion(ctx, opts.CRClient, opts.LiqoNamespace)
+
+	tenant, err := authutils.GenerateTenant(ctx, opts.CRClient, localClusterID, opts.LiqoNamespace, o.remoteTenantNs, signedNonce, &o.proxyURL, liqoVersion)
 	if err != nil {
 		opts.Printer.CheckErr(fmt.Errorf("unable to generate tenant: %w", err))
 		return err
@@ -130,4 +135,25 @@ func (o *Options) handleGenerate(ctx context.Context) error {
 	opts.Printer.CheckErr(o.output(tenant))
 
 	return nil
+}
+
+// getLocalLiqoVersion retrieves the Liqo version from the local cluster's liqo-version ConfigMap.
+// If the ConfigMap is not found or the version cannot be retrieved, it returns an empty string.
+func getLocalLiqoVersion(ctx context.Context, cl client.Client, liqoNamespace string) string {
+	cm := &corev1.ConfigMap{}
+	err := cl.Get(ctx, client.ObjectKey{
+		Namespace: liqoNamespace,
+		Name:      "liqo-version",
+	}, cm)
+	if err != nil {
+		// If the ConfigMap doesn't exist, return empty string (version info not available)
+		return ""
+	}
+
+	version, ok := cm.Data["version"]
+	if !ok {
+		return ""
+	}
+
+	return version
 }
