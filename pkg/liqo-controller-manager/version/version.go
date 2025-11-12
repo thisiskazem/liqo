@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 
-	"github.com/liqotech/liqo/pkg/consts"
 	"github.com/liqotech/liqo/pkg/utils/resource"
 )
 
@@ -107,7 +106,7 @@ func createOrUpdateVersionConfigMap(ctx context.Context, clientset kubernetes.In
 		},
 	}
 
-	resource.AddGlobalLabelsToObjectMeta(&configMap.ObjectMeta)
+	resource.AddGlobalLabels(configMap)
 
 	_, err := clientset.CoreV1().ConfigMaps(liqoNamespace).Get(ctx, LiqoVersionConfigMapName, metav1.GetOptions{})
 	if err != nil {
@@ -146,7 +145,7 @@ func createOrUpdateVersionReaderRole(ctx context.Context, clientset kubernetes.I
 		},
 	}
 
-	resource.AddGlobalLabelsToObjectMeta(&role.ObjectMeta)
+	resource.AddGlobalLabels(role)
 
 	_, err := clientset.RbacV1().Roles(liqoNamespace).Get(ctx, LiqoVersionReaderRoleName, metav1.GetOptions{})
 	if err != nil {
@@ -189,7 +188,7 @@ func createOrUpdateVersionReaderRoleBinding(ctx context.Context, clientset kuber
 		},
 	}
 
-	resource.AddGlobalLabelsToObjectMeta(&roleBinding.ObjectMeta)
+	resource.AddGlobalLabels(roleBinding)
 
 	_, err := clientset.RbacV1().RoleBindings(liqoNamespace).Get(ctx, LiqoVersionReaderRoleBindingName, metav1.GetOptions{})
 	if err != nil {
