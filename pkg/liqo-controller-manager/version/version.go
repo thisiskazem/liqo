@@ -14,10 +14,14 @@
 
 package version
 
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;create;update
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=get;create;update
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=get;create;update
+
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,20 +46,23 @@ const (
 	LiqoGroupName = "liqo.io"
 )
 
-// GetVersionFromImage extracts the version from the container image tag.
-// It expects the image to be in the format: registry/organization/image:tag
-// The version is extracted from the tag. If the tag is not present or extraction fails,
-// it returns an empty string.
-func GetVersionFromImage() string {
-	// Try to get the image from the POD_IMAGE environment variable
-	// (this is typically set by downward API in the pod spec)
-	image := os.Getenv("POD_IMAGE")
-	if image == "" {
-		klog.Warning("POD_IMAGE environment variable not set, cannot determine Liqo version")
+// GetVersionFromDeployment reads the liqo-controller-manager deployment and extracts
+// the version from its container image tag.
+func GetVersionFromDeployment(ctx context.Context, clientset kubernetes.Interface, namespace, deploymentName string) string {
+	deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		klog.Warningf("Failed to get deployment %s/%s: %v", namespace, deploymentName, err)
 		return ""
 	}
 
-	// Extract the tag from the image
+	if len(deployment.Spec.Template.Spec.Containers) == 0 {
+		klog.Warning("No containers found in deployment")
+		return ""
+	}
+
+	image := deployment.Spec.Template.Spec.Containers[0].Image
+
+	// Extract the tag from the image (format: registry/org/image:tag)
 	parts := strings.Split(image, ":")
 	if len(parts) < 2 {
 		klog.Warningf("Image %q does not contain a tag, cannot determine Liqo version", image)
@@ -63,7 +70,7 @@ func GetVersionFromImage() string {
 	}
 
 	tag := parts[len(parts)-1]
-	klog.Infof("Detected Liqo version: %s", tag)
+	klog.Infof("Detected Liqo version from deployment: %s", tag)
 	return tag
 }
 

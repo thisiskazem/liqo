@@ -165,7 +165,8 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Setup version resources (ConfigMap, Role, RoleBinding) for remote clusters to read the local Liqo version.
-	liqoVersion := versionpkg.GetVersionFromImage()
+	// Read the version from the liqo-controller-manager deployment's image tag
+	liqoVersion := versionpkg.GetVersionFromDeployment(cmd.Context(), clientset, opts.LiqoNamespace, "liqo-controller-manager")
 	if err := versionpkg.SetupVersionResources(cmd.Context(), clientset, opts.LiqoNamespace, liqoVersion); err != nil {
 		return fmt.Errorf("unable to setup version resources: %w", err)
 	}
