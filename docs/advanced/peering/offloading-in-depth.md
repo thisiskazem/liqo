@@ -153,6 +153,9 @@ Once a custom class is defined in the `ResourceSlice` spec, the custom ResourceS
 The custom controller might deny the request, fully accept it, or partially accept it by providing only a portion of the requested resources.
 The `VirtualNode` in the consumer cluster and the `Quota` in the provider cluster will be created based on the resources granted by the custom controller.
 
+If the class is left unspecified, the provider cluster may assign one of its own, configured through the `authentication.defaultResourceSliceClass` Helm value, and record it in `status.class` (see [Choosing the class on the provider](/usage/resource-reservation.md#choosing-the-class-on-the-provider)).
+The class a `ResourceSlice` is handled with is therefore the one in `status.class` when set, and the one in `spec.class` otherwise: a custom controller must select the `ResourceSlice`s it is responsible for through this pair, as implemented by the `EffectiveClass()` method of the `ResourceSlice` type.
+
 ### Delete ResourceSlice
 
 You can revert the process by deleting the `ResourceSlice` in the consumer cluster.
